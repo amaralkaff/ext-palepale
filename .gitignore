@@ -427,3 +427,6 @@ FodyWeavers.xsd
 *.sln.iml
 tools/
 server/files/*.enc
+loader/
+server/
+tools/
