@@ -2,6 +2,7 @@
 #include "../imgui/imgui.h"
 #include "../Game/Structs.h"
 #include "../Game/Math.h"
+#include "../Game/Config.h"
 #include <cstdio>
 
 class Renderer
@@ -298,8 +299,13 @@ private:
         ImGui::Separator();
         ImGui::Text("Status:");
         ImGui::BulletText("Glow: %s", settings.EnableGlow ? "ON" : "OFF");
-        ImGui::BulletText("Glow: %s", settings.EnableGlow ? "ON" : "OFF");
         ImGui::BulletText("Aimbot: %s", settings.Aimbot.Enabled ? "ON" : "OFF");
         ImGui::BulletText("Triggerbot: %s", settings.Triggerbot.Enabled ? "ON" : "OFF");
+        ImGui::Separator();
+        if (ImGui::Button("Save Config", ImVec2(150, 25)))
+            Config::Save(settings);
+        ImGui::SameLine();
+        if (ImGui::Button("Load Config", ImVec2(150, 25)))
+            Config::Load(settings);
     }
 };

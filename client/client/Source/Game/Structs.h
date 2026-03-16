@@ -97,10 +97,10 @@ struct ESPPlayer
 // Aimbot configuration
 struct AimbotConfig
 {
-    bool Enabled = false;
-    float FOV = 30.0f;
-    float Smooth = 15.0f;
-    int Bone = 2;              // 0=Head, 1=Neck, 2=UpperChest, 3=LowerChest, 4=Stomach
+    bool Enabled = true;
+    float FOV = 5.0f;
+    float Smooth = 27.0f;
+    int Bone = 2;
     float Deadzone = 0.5f;
     bool ShowFOV = true;
     bool Prediction = false;

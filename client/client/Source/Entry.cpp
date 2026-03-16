@@ -12,6 +12,7 @@
 #include "Game/Triggerbot.h"
 #include "Game/SpectatorList.h"
 #include "Game/Movement.h"
+#include "Game/Config.h"
 #include "Overlay/Overlay.h"
 #include "Overlay/Renderer.h"
 
@@ -139,6 +140,10 @@ void MemoryLoop()
 int main(int argc, char* argv[])
 {
     printf("[>] palepale v1.0\n\n");
+
+    if (Config::Load(g_Settings))
+        printf("[+] Config loaded\n");
+
 
     printf("[*] Connecting to driver...\n");
     if (!KMem::Init())

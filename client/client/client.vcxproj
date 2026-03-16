@@ -37,6 +37,7 @@
     <ClInclude Include="Source\Game\Aimbot.h" />
     <ClInclude Include="Source\Game\Triggerbot.h" />
     <ClInclude Include="Source\Game\SpectatorList.h" />
+    <ClInclude Include="Source\Game\Config.h" />
     <ClInclude Include="Source\Overlay\Overlay.h" />
     <ClInclude Include="Source\Overlay\Renderer.h" />
     <ClInclude Include="Source\imgui\imconfig.h" />

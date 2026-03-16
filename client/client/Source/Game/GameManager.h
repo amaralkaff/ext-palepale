@@ -109,14 +109,14 @@ public:
     int GlowVisibleIdx = 70;
     int GlowInvisibleIdx = 80;
 
+    // Values that were confirmed working: enable=7, walls=2, T1=16256, T2=1193322764
     void QueueEntityGlow(ULONG64 entity, bool isVisible = false)
     {
-        int idx = isVisible ? GlowVisibleIdx : GlowInvisibleIdx;
-        GlowQueue.push_back({ entity, entity + 0x26c, 1, 4 });         // through wall = 1
-        GlowQueue.push_back({ entity, entity + 0x278, 2, 4 });         // glow fix = 2
-        GlowQueue.push_back({ entity, entity + 0x294, 99999, 4 });     // distance
-        GlowQueue.push_back({ entity, entity + 0x28C, 1, 4 });         // enable = 1
-        GlowQueue.push_back({ entity, entity + 0x298, idx, 4 });       // highlight ID (70=visible, 80=invisible)
+        GlowQueue.push_back({ entity, entity + 0x298, 65, 1 });        // highlight ID (Nika: 65=red)
+        GlowQueue.push_back({ entity, entity + 0x28C, 7, 4 });         // enable = 7
+        GlowQueue.push_back({ entity, entity + 0x26c, 2, 4 });         // through walls = 2
+        GlowQueue.push_back({ entity, entity + 0x292, 16256, 4 });     // T1 fill
+        GlowQueue.push_back({ entity, entity + 0x30c, 1193322764, 4 }); // T2
     }
 
     void UpdateGlow()
@@ -155,36 +155,14 @@ public:
 
         if (Players.empty()) return;
 
-        // Init HighlightSettings once (visible=green, invisible=red)
-        static bool glowSettingsInit = false;
-        if (!glowSettingsInit)
-        {
-            ULONG64 hlSettings = KMem::Read<ULONG64>(BaseAddress + Offsets::m_highlightSettings);
-            if (hlSettings > 0x10000)
-            {
-                // Function bits: {insideFunc=2, outlineFunc=125, outline=64, pad=64}
-                int funcBits = 2 | (125 << 8) | (64 << 16) | (64 << 24);
-
-                // Visible (index 70): green
-                KMem::Write<int>(hlSettings + 0x34 * GlowVisibleIdx + 0, funcBits);
-                float green[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-                KMem::WriteMemory(hlSettings + 0x34 * GlowVisibleIdx + 4, green, sizeof(green));
-
-                // Invisible (index 80): red
-                KMem::Write<int>(hlSettings + 0x34 * GlowInvisibleIdx + 0, funcBits);
-                float red[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-                KMem::WriteMemory(hlSettings + 0x34 * GlowInvisibleIdx + 4, red, sizeof(red));
-
-                glowSettingsInit = true;
-            }
-        }
+        // No HighlightSettings init — writing to global pointer causes freeze
 
         for (const auto& player : Players)
         {
             if (!ForceGlowRefresh)
             {
                 int cur = KMem::Read<int>(player.Address + 0x28C);
-                if (cur == 1) continue; // Already glowed
+                if (cur == 7) continue; // Already glowed
             }
             QueueEntityGlow(player.Address, player.IsVisible);
         }
@@ -194,14 +172,16 @@ public:
 
     // Bulk entity read: read 0x700 bytes per entity in one IOCTL, then extract fields
     bool FiringRangeMode = false;
+    std::vector<ESPPlayer> PrevPlayers;  // Previous frame's players for persistence
 
     void UpdatePlayers(float maxDistance, bool needBones)
     {
+        PrevPlayers = Players;
         Players.clear();
         if (!LocalPlayerPtr) return;
 
         ULONG64 entityListBase = BaseAddress + Offsets::EntityList;
-        int maxSlots = FiringRangeMode ? 10000 : 200;
+        int maxSlots = FiringRangeMode ? 10000 : 300;
 
         constexpr int BATCH = 128;
         BYTE rawBuf[BATCH * 0x20];
@@ -222,6 +202,19 @@ public:
 
                 ProcessEntity(entityPtr, maxDistance, needBones);
             }
+        }
+
+        // Persistence: keep previous players that weren't found this frame
+        // Prevents flickering when physical reads fail intermittently
+        for (const auto& prev : PrevPlayers)
+        {
+            bool found = false;
+            for (const auto& cur : Players)
+            {
+                if (cur.Address == prev.Address) { found = true; break; }
+            }
+            if (!found && prev.Health > 0)
+                Players.push_back(prev);  // Keep from last frame
         }
 
     }
