@@ -425,3 +425,5 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+tools/
+server/files/*.enc
