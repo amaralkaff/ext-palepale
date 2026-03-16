@@ -64,7 +64,7 @@ public:
 
             if (!(GetAsyncKeyState(self->configPtr->TriggerKey) & 0x8000))
             {
-                Sleep(1);
+                Sleep(5);
                 continue;
             }
 
@@ -105,7 +105,7 @@ public:
                 KMem::Write<int>(self->baseAddress + Offsets::in_attack + 0x8, 4);
             }
 
-            Sleep(1);
+            Sleep(3);
         }
 
         timeEndPeriod(1);

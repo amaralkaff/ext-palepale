@@ -201,7 +201,7 @@ public:
         if (!LocalPlayerPtr) return;
 
         ULONG64 entityListBase = BaseAddress + Offsets::EntityList;
-        int maxSlots = FiringRangeMode ? 10000 : 100;
+        int maxSlots = FiringRangeMode ? 10000 : 200;
 
         constexpr int BATCH = 128;
         BYTE rawBuf[BATCH * 0x20];
@@ -228,27 +228,27 @@ public:
 
     void ProcessEntity(ULONG64 entity, float maxDistance, bool needBones)
     {
-        // Bulk read 0x170-0x340: covers velocity, origin, shield, health, team
-        constexpr uintptr_t BUF_START = 0x170;
-        constexpr size_t BUF_SIZE = 0x340 - 0x170;
-        BYTE entityBuf[BUF_SIZE];
-        if (!KMem::ReadMemory(entity + BUF_START, entityBuf, BUF_SIZE))
+        // Buffer 1: 0x170-0x340 — covers velocity, origin, shield, health, team
+        constexpr uintptr_t BUF1_START = 0x170;
+        constexpr size_t BUF1_SIZE = 0x340 - 0x170;
+        BYTE entityBuf1[BUF1_SIZE];
+        if (!KMem::ReadMemory(entity + BUF1_START, entityBuf1, BUF1_SIZE))
             return;
 
-        auto ReadBuf = [&](uintptr_t offset) -> void* {
-            uintptr_t rel = offset - BUF_START;
-            if (rel >= BUF_SIZE) return nullptr;
-            return entityBuf + rel;
+        auto ReadBuf1 = [&](uintptr_t offset) -> void* {
+            uintptr_t rel = offset - BUF1_START;
+            if (rel >= BUF1_SIZE) return nullptr;
+            return entityBuf1 + rel;
         };
 
-        FVector position = *(FVector*)ReadBuf(Offsets::m_vecAbsOrigin);
+        FVector position = *(FVector*)ReadBuf1(Offsets::m_vecAbsOrigin);
         if (position.X == 0 && position.Y == 0 && position.Z == 0) return;
 
         float distance = LocalPosition.Distance(position) / 39.37f;
         if (distance > maxDistance || distance < 1.0f) return;
 
-        int health = *(int*)ReadBuf(Offsets::m_iHealth);
-        int teamId = *(int*)ReadBuf(Offsets::m_iTeamNum);
+        int health = *(int*)ReadBuf1(Offsets::m_iHealth);
+        int teamId = *(int*)ReadBuf1(Offsets::m_iTeamNum);
 
         if (health <= 0) return;
         if (!FiringRangeMode)
@@ -257,24 +257,32 @@ public:
             if (teamId == LocalTeamId) return;
         }
 
-        int lifeState = KMem::Read<int>(entity + Offsets::m_lifeState);
+        // Buffer 2: 0x690-0x6A0 — covers lifeState
+        constexpr uintptr_t BUF2_START = 0x690;
+        constexpr size_t BUF2_SIZE = 0x6A0 - 0x690;
+        BYTE entityBuf2[BUF2_SIZE];
+        if (!KMem::ReadMemory(entity + BUF2_START, entityBuf2, BUF2_SIZE))
+            return;
+
+        int lifeState = *(int*)(entityBuf2 + (Offsets::m_lifeState - BUF2_START));
         if (lifeState > 0) return;
 
         // Velocity
-        FVector velocity = *(FVector*)ReadBuf(Offsets::m_vecAbsVelocity);
+        FVector velocity = *(FVector*)ReadBuf1(Offsets::m_vecAbsVelocity);
 
         // Shield
-        int shield = *(int*)ReadBuf(Offsets::m_shieldHealth);
-        int shieldMax = *(int*)ReadBuf(Offsets::m_shieldHealthMax);
+        int shield = *(int*)ReadBuf1(Offsets::m_shieldHealth);
+        int shieldMax = *(int*)ReadBuf1(Offsets::m_shieldHealthMax);
 
-        // Bleedout state (outside buffer, read separately)
+        // Bleedout state (far offset, read separately)
         int bleedout = KMem::Read<int>(entity + Offsets::m_bleedoutState);
-        int armorTier = KMem::Read<int>(entity + Offsets::armorType);
 
-        // Visibility
-        // Visibility: compare lastVisibleTime with cached CurTime
+        // Visibility: compare lastVisibleTime with cached CurTime (far offset, read separately)
         float lastVisible = KMem::Read<float>(entity + Offsets::m_lastVisibleTime);
         bool isVisible = (lastVisible > 0 && CurTime > 0 && (CurTime - lastVisible) < 0.3f);
+
+        // Skip armorType read — not critical for aimbot/glow
+        int armorTier = 0;
 
         FVector headPos = position;
         headPos.Z += 72.0f;

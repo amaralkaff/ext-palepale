@@ -73,8 +73,12 @@ void MemoryLoop()
 
         if (needPlayers)
         {
-            g_Game.UpdateCamera();
-            g_Game.UpdateWeaponInfo();
+            // Only read camera when aimbot or triggerbot need it (they use viewMatrix)
+            if (g_Settings.Aimbot.Enabled || g_Settings.Triggerbot.Enabled)
+                g_Game.UpdateCamera();
+            // Only read weapon info when prediction is enabled (bullet speed/scale)
+            if (g_Settings.Aimbot.Prediction || g_Settings.Triggerbot.Prediction)
+                g_Game.UpdateWeaponInfo();
             g_Game.UpdatePlayers(g_Settings.MaxDistance, needBones);
 
             {
@@ -110,7 +114,7 @@ void MemoryLoop()
         if (g_Game.GlowEnabled)
             g_Game.UpdateGlow();
 
-        if (g_Settings.ShowSpectators && (g_Game.FrameCount % 30 == 0))
+        if (g_Settings.ShowSpectators && (g_Game.FrameCount % 100 == 0))
             g_SpectatorList.Update(g_Game.LocalPlayerPtr, g_Game.BaseAddress);
 
         // Movement
@@ -126,7 +130,7 @@ void MemoryLoop()
         for (const auto& p : g_Game.Players)
             if (p.Distance < closestDist) closestDist = p.Distance;
 
-        int sleepMs = (closestDist < 50.0f) ? 5 : (closestDist < 100.0f) ? 10 : (closestDist < 200.0f) ? 16 : 22;
+        int sleepMs = (closestDist < 50.0f) ? 16 : (closestDist < 100.0f) ? 20 : (closestDist < 200.0f) ? 25 : 33;
         g_Game.FrameCount++;
         Sleep(sleepMs);
     }
