@@ -136,13 +136,15 @@ int main(int argc, char* argv[])
 {
     printf("[>] palepale v1.0\n\n");
 
+    printf("[*] Connecting to driver...\n");
     if (!KMem::Init())
     {
         printf("[!] Load driver first\n"); getchar();
         return 1;
     }
+    printf("[+] Driver connected\n");
 
-    // Wait for Apex (loop until found)
+    printf("[*] Waiting for Apex...\n");
     UINT32 pid = 0;
     for (int i = 0; i < 60 && !pid; i++)
     {
@@ -152,27 +154,31 @@ int main(int argc, char* argv[])
     }
     if (!pid)
     {
-        MessageBoxA(NULL, "Apex not found", "palepale", MB_ICONERROR);
+        printf("[!] Apex not found\n"); getchar();
         return 1;
     }
+    printf("[+] PID: %u\n", pid);
 
+    printf("[*] Attaching...\n");
     if (!KMem::AttachToProcess(pid))
     {
-        MessageBoxA(NULL, "Failed to attach", "palepale", MB_ICONERROR);
+        printf("[!] Failed to attach\n"); getchar();
         return 1;
     }
+    printf("[+] Base: 0x%llX\n", KMem::TargetBase);
+    printf("[+] Mode: %s\n", KMem::UsePhysical ? "Physical" : "Virtual");
 
     UINT64 baseAddress = KMem::TargetBase;
     UINT64 header = KMem::Read<UINT64>(baseAddress);
+    printf("[+] MZ: %s\n", (header & 0xFFFF) == 0x5A4D ? "OK" : "FAIL");
     if ((header & 0xFFFF) != 0x5A4D)
     {
-        MessageBoxA(NULL, "MZ check failed", "palepale", MB_ICONERROR);
+        printf("[!] MZ check failed\n"); getchar();
         return 1;
     }
 
     g_Game.Init(pid, baseAddress);
 
-    // Find game window
     HWND gameWindow = FindWindowA("Respawn001", NULL);
     if (!gameWindow) gameWindow = FindWindow(nullptr, L"Apex Legends");
     if (!gameWindow) gameWindow = GetDesktopWindow();
@@ -180,12 +186,14 @@ int main(int argc, char* argv[])
     Overlay overlay;
     if (!overlay.Init(gameWindow))
     {
-        MessageBoxA(NULL, "Overlay init failed", "palepale", MB_ICONERROR);
+        printf("[!] Overlay failed\n"); getchar();
         return 1;
     }
 
     g_ScreenWidth = (float)overlay.Width;
     g_ScreenHeight = (float)overlay.Height;
+    printf("[+] Overlay: %dx%d\n", overlay.Width, overlay.Height);
+    printf("[+] INSERT=menu END=exit\n\n");
 
     // Global hotkey: INSERT works from ANY window, even fullscreen Apex
     RegisterHotKey(NULL, 1, 0, VK_INSERT);

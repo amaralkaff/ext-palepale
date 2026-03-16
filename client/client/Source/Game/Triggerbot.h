@@ -89,6 +89,7 @@ public:
             for (const auto& p : players)
             {
                 if (p.Health <= 0) continue;
+                if (self->configPtr->VisibleOnly && !p.IsVisible) continue;
                 if (self->IsCrosshairOnTarget(p, vm, self->screenW, self->screenH))
                 {
                     onTarget = true;
