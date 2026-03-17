@@ -226,6 +226,7 @@ private:
             ImGui::Checkbox("Through Walls", &settings.GlowThroughWalls);
             ImGui::Separator();
             ImGui::SliderFloat("Max Distance (m)", &settings.MaxDistance, 50.0f, 1000.0f, "%.0f");
+            ImGui::Checkbox("Item Glow (loot)", &settings.ItemGlow);
         }
     }
 

@@ -145,4 +145,7 @@ struct Settings
 
     // Movement
     bool NeoStrafe = true;
+
+    // Item Glow
+    bool ItemGlow = false;  // Off by default (performance)
 };

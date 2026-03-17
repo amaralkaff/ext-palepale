@@ -159,10 +159,11 @@ public:
 
         for (const auto& player : Players)
         {
+            if (player.IsKnocked) continue;  // Skip stale/persisted entities
             if (!ForceGlowRefresh)
             {
                 int cur = KMem::Read<int>(player.Address + 0x28C);
-                if (cur == 7) continue; // Already glowed
+                if (cur == 7) continue;
             }
             QueueEntityGlow(player.Address, player.IsVisible);
         }
@@ -204,9 +205,9 @@ public:
             }
         }
 
-        // Persistence: keep previous players that weren't found this frame
-        // Prevents flickering when physical reads fail intermittently
-        for (const auto& prev : PrevPlayers)
+        // Persistence: keep previous players for aimbot continuity
+        // But mark them so glow doesn't write to potentially freed memory
+        for (auto& prev : PrevPlayers)
         {
             bool found = false;
             for (const auto& cur : Players)
@@ -214,7 +215,10 @@ public:
                 if (cur.Address == prev.Address) { found = true; break; }
             }
             if (!found && prev.Health > 0)
-                Players.push_back(prev);  // Keep from last frame
+            {
+                prev.IsKnocked = true;  // Mark stale — glow will skip knocked entities
+                Players.push_back(prev);
+            }
         }
 
     }

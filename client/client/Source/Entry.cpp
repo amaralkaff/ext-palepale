@@ -13,6 +13,7 @@
 #include "Game/SpectatorList.h"
 #include "Game/Movement.h"
 #include "Game/Config.h"
+#include "Game/ItemGlow.h"
 #include "Overlay/Overlay.h"
 #include "Overlay/Renderer.h"
 
@@ -114,6 +115,10 @@ void MemoryLoop()
         g_Game.GlowEnabled = g_Settings.EnableGlow;
         if (g_Game.GlowEnabled)
             g_Game.UpdateGlow();
+
+        // Item glow — scan every 30 frames to save IOCTLs
+        if (g_Settings.ItemGlow && (g_Game.FrameCount % 30 == 0))
+            ItemGlow::Update(g_Game.BaseAddress, g_Game.LocalPosition, g_Settings.MaxDistance);
 
         if (g_Settings.ShowSpectators && (g_Game.FrameCount % 100 == 0))
             g_SpectatorList.Update(g_Game.LocalPlayerPtr, g_Game.BaseAddress);
